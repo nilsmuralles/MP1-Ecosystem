@@ -44,6 +44,8 @@ void run_simulation(int num_ticks, int num_threads);
 void swap_grids(void);
 PopulationCount count_population(void);
 
+bool try_place_in_next_grid(int row, int col, Cell organism);
+
 void update_plant(int row, int col);
 void update_herbivore(int row, int col);
 
