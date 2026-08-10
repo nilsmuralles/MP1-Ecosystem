@@ -100,16 +100,3 @@ void update_carnivore(int row, int col) {
     // Por defecto se queda en su celda
     next_grid[row][col] = c;
 }
-
-void print_ecosystem_state(int tick, PopulationCount pop) {
-    printf("Tick %d - Plantas: %d, Herbivoros: %d, Carnivoros: %d\n",
-           tick, pop.plants, pop.herbivores, pop.carnivores);
-}
-
-void save_results_to_file(const char *filename, int tick, PopulationCount pop) {
-    FILE *f = fopen(filename, "a");
-    if (!f) return;
-    fprintf(f, "Tick %d - Plantas: %d, Herbivoros: %d, Carnivoros: %d\n",
-            tick, pop.plants, pop.herbivores, pop.carnivores);
-    fclose(f);
-}

@@ -16,6 +16,9 @@
 #define INITIAL_HERBIVORES 40
 #define INITIAL_CARNIVORES 15
 
+
+#define CONSOLE_SNAPSHOT_INTERVAL 5
+
 typedef enum {
   EMPTY = 0,
   PLANT,
