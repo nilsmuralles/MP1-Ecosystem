@@ -24,7 +24,51 @@ static inline unsigned int cell_seed(int row, int col) {
 }
 
 // CARNÍVOROS
+
+// Fase 1 (caza): se ejecuta antes que update_carnivore/update_herbivore. Si
+// el carnívoro logra reclamar un herbívoro adyacente, se coloca directamente
+// en next_grid[prey_r][prey_c] y marca hunted[row][col] para que
+// update_carnivore no lo vuelva a procesar en la fase 2.
+bool try_hunt_herbivore(int row, int col) {
+    Cell c = grid[row][col];
+
+    if (c.ticks_without_food >= CARNIVORE_STARVE_TICKS) return false;
+    if (c.ticks_alive >= CARNIVORE_MAX_AGE) return false;
+
+    int prey_r = -1, prey_c = -1;
+
+    for (int i = 0; i < 8; i++) {
+        int nr = row + DR[i];
+        int nc = col + DC[i];
+        if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) continue;
+
+        if (grid[nr][nc].type == HERBIVORE) {
+            prey_r = nr;
+            prey_c = nc;
+            break;
+        }
+    }
+
+    if (prey_r == -1) return false;
+
+    Cell fed = c;
+    fed.ticks_alive++;
+    fed.energy += CARNIVORE_HUNT_ENERGY_GAIN;
+    fed.ticks_without_food = 0;
+
+    if (try_claim_prey(prey_r, prey_c, fed)) {
+        hunted[row][col] = true;
+        return true;
+    }
+    return false;
+}
+
 void update_carnivore(int row, int col) {
+    // Ya resuelto en la fase de caza (cazó con éxito).
+    if (hunted[row][col]) {
+        return;
+    }
+
     Cell c = grid[row][col];
 
     // Muerte por inanición
@@ -40,41 +84,22 @@ void update_carnivore(int row, int col) {
     c.ticks_alive++;
 
     int empty_r[8], empty_c[8], empty_count = 0;
-    int prey_r = -1, prey_c = -1;
 
-    // Buscar celdas vecinas vacías y herbívoros adyacentes
-    // para cazar
+    // Buscar celdas vecinas vacías (ya no busca presa, eso se resolvió
+    // en la fase 1 con try_hunt_herbivore).
     for (int i = 0; i < 8; i++) {
         int nr = row + DR[i];
         int nc = col + DC[i];
         if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) continue;
 
-        CellType t = grid[nr][nc].type;
-        if (t == EMPTY) {
+        if (grid[nr][nc].type == EMPTY) {
             empty_r[empty_count] = nr;
             empty_c[empty_count] = nc;
             empty_count++;
-        } else if (t == HERBIVORE && prey_r == -1) {
-            prey_r = nr;
-            prey_c = nc;
         }
     }
 
     unsigned int seed = cell_seed(row, col);
-
-    // Cazar, moverse hacia un herbívoro adyacente y consumirlo
-    if (prey_r != -1) {
-        Cell fed = c;
-        fed.energy += CARNIVORE_HUNT_ENERGY_GAIN;
-        fed.ticks_without_food = 0;
-
-        if (try_place_in_next_grid(prey_r, prey_c, fed)) {
-            return;
-        }
-        c.ticks_without_food++;
-        next_grid[row][col] = c;
-        return;
-    }
 
     c.ticks_without_food++;
 

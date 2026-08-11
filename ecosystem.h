@@ -35,6 +35,8 @@ typedef struct {
 
 extern Cell grid[GRID_SIZE][GRID_SIZE];
 extern Cell next_grid[GRID_SIZE][GRID_SIZE];
+extern bool eaten[GRID_SIZE][GRID_SIZE];
+extern bool hunted[GRID_SIZE][GRID_SIZE];
 
 typedef struct {
   int plants;
@@ -48,11 +50,14 @@ void swap_grids(void);
 PopulationCount count_population(void);
 
 bool try_place_in_next_grid(int row, int col, Cell organism);
+bool try_claim_prey(int prey_row, int prey_col, Cell hunter_after_eating);
 
 void update_plant(int row, int col);
 void update_herbivore(int row, int col);
+bool try_hunt_plant(int row, int col);
 
 void update_carnivore(int row, int col);
+bool try_hunt_herbivore(int row, int col);
 void print_ecosystem_state(int tick, PopulationCount pop);
 void save_results_to_file(const char *filename, int tick, PopulationCount pop);
 

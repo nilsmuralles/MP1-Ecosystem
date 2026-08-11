@@ -7,6 +7,8 @@
 
 Cell grid[GRID_SIZE][GRID_SIZE];
 Cell next_grid[GRID_SIZE][GRID_SIZE];
+bool eaten[GRID_SIZE][GRID_SIZE];
+bool hunted[GRID_SIZE][GRID_SIZE];
 
 static void place_random(CellType type, int count, int energy) {
     int placed = 0;
@@ -44,6 +46,19 @@ bool try_place_in_next_grid(int row, int col, Cell organism) {
     return placed;
 }
 
+bool try_claim_prey(int prey_row, int prey_col, Cell hunter_after_eating) {
+    bool claimed_now = false;
+    #pragma omp critical(prey_claim)
+    {
+        if (!eaten[prey_row][prey_col]) {
+            eaten[prey_row][prey_col] = true;
+            next_grid[prey_row][prey_col] = hunter_after_eating;
+            claimed_now = true;
+        }
+    }
+    return claimed_now;
+}
+
 void swap_grids(void) {
     memcpy(grid, next_grid, sizeof(grid));
 }
@@ -72,8 +87,22 @@ void run_simulation(int num_ticks, int num_threads) {
 
         #pragma omp parallel for collapse(2) num_threads(num_threads)
         for (int r = 0; r < GRID_SIZE; r++)
-            for (int c = 0; c < GRID_SIZE; c++)
+            for (int c = 0; c < GRID_SIZE; c++) {
                 next_grid[r][c] = (Cell){EMPTY, 0, 0, 0};
+                eaten[r][c] = false;
+                hunted[r][c] = false;
+            }
+
+        #pragma omp parallel for collapse(2) schedule(dynamic) num_threads(num_threads)
+        for (int r = 0; r < GRID_SIZE; r++) {
+            for (int c = 0; c < GRID_SIZE; c++) {
+                switch (grid[r][c].type) {
+                    case HERBIVORE: try_hunt_plant(r, c);     break;
+                    case CARNIVORE: try_hunt_herbivore(r, c); break;
+                    default: break;
+                }
+            }
+        }
 
         #pragma omp parallel for collapse(2) schedule(dynamic) num_threads(num_threads)
         for (int r = 0; r < GRID_SIZE; r++) {
